@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  PROVIDER
+  FRONT_DESK
+}
+
+enum ProductCategory {
+  BOTOX
+  FILLER
+  SKINCARE
+  RETAIL
+  SUPPLIES
+  OTHER
+}
+
+enum UnitType {
+  VIAL
+  SYRINGE
+  BOTTLE
+  BOX
+  PIECE
+  ML
+  UNIT
+}
+
+enum TransactionType {
+  USE
+  SELL
+  WASTE
+  RETURN
+  ADJUSTMENT
+  RECEIVE
+}
+
+enum WasteReason {
+  EXPIRED
+  CONTAMINATED
+  SPILLED
+  CLIENT_REACTION
+  OTHER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(PROVIDER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactionsLogged    Transaction[] @relation("LoggedBy")
+  transactionsPerformed Transaction[] @relation("PerformedBy")
+  auditLogs             AuditLog[]
+}
+
+model Product {
+  id               String          @id @default(cuid())
+  name             String
+  category         ProductCategory
+  brand            String?
+  sku              String?         @unique
+  unitType         UnitType
+  costPerUnit      Decimal         @db.Decimal(10, 2)
+  sellingPrice     Decimal?        @db.Decimal(10, 2)
+  reorderThreshold Decimal         @db.Decimal(10, 2) @default(5)
+  currentQuantity  Decimal         @default(0) @db.Decimal(10, 2)
+  expirationDate   DateTime?
+  notes            String?
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  productId       String
+  transactionType TransactionType
+  quantity        Decimal         @db.Decimal(10, 2)
+  unitType        UnitType
+  quantityBefore  Decimal         @db.Decimal(10, 2)
+  quantityAfter   Decimal         @db.Decimal(10, 2)
+  loggedById      String
+  performedById   String
+  clientName      String?
+  appointmentRef  String?
+  wasteReason     WasteReason?
+  reason          String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+
+  product     Product @relation(fields: [productId], references: [id])
+  loggedBy    User    @relation("LoggedBy", fields: [loggedById], references: [id])
+  performedBy User    @relation("PerformedBy", fields: [performedById], references: [id])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  entityType    String
+  entityId      String
+  action        String
+  changesBefore Json?
+  changesAfter  Json?
+  performedById String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  performedBy User? @relation(fields: [performedById], references: [id])
+}
