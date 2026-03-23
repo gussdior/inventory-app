@@ -7,7 +7,10 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 1, // Serverless: one connection per function instance
+  });
   
   // Cast bypasses the type conflict between @types/pg versions in the app vs @prisma/adapter-pg
   const adapter = new PrismaPg(pool as any);

@@ -50,7 +50,7 @@ export default function DashboardPage() {
           setAlertTab("expiring");
         }
       })
-      .catch(() => setLoading(false));
+      .catch((err) => { console.error("Dashboard fetch failed:", err); setLoading(false); });
   }, []);
 
   if (loading) {
