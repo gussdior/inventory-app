@@ -40,7 +40,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
       .then((p) => {
         setForm({
           name: p.name,
@@ -59,6 +62,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           notes: p.notes ?? "",
           isActive: p.isActive,
         });
+        setLoading(false);
+      })
+      .catch(() => {
+        setErrors({ _server: "Failed to load product. Please go back and try again." });
         setLoading(false);
       });
   }, [id]);
@@ -82,22 +89,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     if (!validate()) return;
     setSaving(true);
     setErrors({});
-    const res = await fetch(`/api/products/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    if (res.ok) {
-      router.refresh();
-      router.push(`/products/${id}`);
-    } else {
-      try {
-        const data = await res.json();
-        setErrors({ _server: data.error ?? "Failed to save." });
-      } catch {
-        setErrors({ _server: `Failed to save. (${res.status})` });
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        router.refresh();
+        router.push(`/products/${id}`);
+      } else {
+        try {
+          const data = await res.json();
+          setErrors({ _server: data.error ?? "Failed to save." });
+        } catch {
+          setErrors({ _server: `Failed to save. (${res.status})` });
+        }
       }
+    } catch {
+      setErrors({ _server: "Network error — check your connection and try again." });
+    } finally {
+      setSaving(false);
     }
   }
 

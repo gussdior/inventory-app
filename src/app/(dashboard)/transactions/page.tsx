@@ -34,7 +34,8 @@ export default function TransactionsPage() {
     if (isManager) {
       fetch("/api/users")
         .then((r) => r.json())
-        .then(setProviders);
+        .then((d) => { if (Array.isArray(d)) setProviders(d); })
+        .catch(() => {});
     }
   }, [isManager]);
 
@@ -46,7 +47,8 @@ export default function TransactionsPage() {
     setLoading(true);
     fetch(`/api/transactions?${params}`)
       .then((r) => r.json())
-      .then((d) => { setTransactions(d); setLoading(false); });
+      .then((d) => { setTransactions(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [type, providerId]);
 
   return (

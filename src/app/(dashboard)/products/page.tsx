@@ -45,7 +45,8 @@ export default function ProductsPage() {
     setLoading(true);
     fetch(`/api/products?${params}`)
       .then((r) => r.json())
-      .then((d) => { setProducts(d); setLoading(false); });
+      .then((d) => { setProducts(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
   }
 
   useEffect(() => { load(); }, [category, showLowStock]); // eslint-disable-line react-hooks/exhaustive-deps

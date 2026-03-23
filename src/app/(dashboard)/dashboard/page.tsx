@@ -37,21 +37,32 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [alertTab, setAlertTab] = useState<"low" | "expiring">("low");
 
-  useEffect(() => {
+  function loadDashboard() {
+    setLoading(true);
+    setError(false);
     fetch("/api/dashboard")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         setData(d);
         setLoading(false);
-        // Default to whichever tab has items
         if (d.lowStockProducts.length === 0 && d.expiringSoon.length > 0) {
           setAlertTab("expiring");
         }
       })
-      .catch((err) => { console.error("Dashboard fetch failed:", err); setLoading(false); });
-  }, []);
+      .catch((err) => {
+        console.error("Dashboard fetch failed:", err);
+        setError(true);
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => { loadDashboard(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -61,7 +72,19 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) return <div className="text-slate-500">Failed to load dashboard.</div>;
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-slate-500 text-sm">Failed to load dashboard.</p>
+        <button
+          onClick={loadDashboard}
+          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const hasAlerts = data.lowStockProducts.length > 0 || data.expiringSoon.length > 0;
 

@@ -709,7 +709,7 @@ export default function LogPage() {
       setProducts(Array.isArray(prods) ? prods : []);
       setRecentTxs(Array.isArray(txs) ? txs : []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
     if (isFrontDeskOrManager) {
       fetch("/api/users")
         .then((r) => r.json())
@@ -759,7 +759,7 @@ export default function LogPage() {
       setProducts(Array.isArray(prods) ? prods : []);
       setRecentTxs(Array.isArray(txs) ? txs : []);
       setQtys({});
-    });
+    }).catch((err) => console.error("Log page refresh failed:", err));
   }, [session?.user?.id]);
 
   // Core log function: double-tap safe, optimistic, supports undo
@@ -825,12 +825,17 @@ export default function LogPage() {
     setToasts((prev) => prev.filter((t) => t.id !== toast.id));
     setQtys((prev) => ({ ...prev, [productId]: prevQty })); // optimistic restore
 
-    const res = await fetch(`/api/transactions/${transactionId}`, { method: "DELETE" });
+    const res = await fetch(`/api/transactions/${transactionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reversalReason: "Undo" }),
+    });
 
     if (!res.ok) {
-      // Revert if server rejected the undo
+      // Revert optimistic update if server rejected the undo
       setQtys((prev) => ({ ...prev, [productId]: prevQty - toast.undoData!.qty }));
-      addToast("Undo failed — transaction was kept.", "error");
+      const d = await res.json().catch(() => ({}));
+      addToast(d.error ?? "Undo failed — transaction was kept.", "error");
       return;
     }
 

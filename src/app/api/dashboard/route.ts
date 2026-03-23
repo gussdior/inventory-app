@@ -63,7 +63,7 @@ export async function GET(_req: NextRequest) {
       }, 0)
     ),
 
-    // Usage by provider (last 30 days)
+    // Usage by provider (last 30 days) — batch user lookup, no N+1
     prisma.transaction.groupBy({
       by: ["performedById"],
       where: {
@@ -72,16 +72,15 @@ export async function GET(_req: NextRequest) {
       },
       _count: { id: true },
     }).then(async (groups) => {
-      const withNames = await Promise.all(
-        groups.map(async (g) => {
-          const user = await prisma.user.findUnique({
-            where: { id: g.performedById },
-            select: { name: true },
-          });
-          return { name: user?.name ?? "Unknown", count: g._count.id };
-        })
-      );
-      return withNames.sort((a, b) => b.count - a.count);
+      if (groups.length === 0) return [];
+      const users = await prisma.user.findMany({
+        where: { id: { in: groups.map((g) => g.performedById) } },
+        select: { id: true, name: true },
+      });
+      const userMap = new Map(users.map((u) => [u.id, u.name]));
+      return groups
+        .map((g) => ({ name: userMap.get(g.performedById) ?? "Unknown", count: g._count.id }))
+        .sort((a, b) => b.count - a.count);
     }),
 
     // Waste total (last 30 days)
@@ -95,7 +94,7 @@ export async function GET(_req: NextRequest) {
       txns.reduce((sum, t) => sum + Number(t.quantity) * Number(t.product.costPerUnit), 0)
     ),
 
-    // Top 5 most used products (last 30 days)
+    // Top 5 most used products (last 30 days) — batch product lookup, no N+1
     prisma.transaction.groupBy({
       by: ["productId"],
       where: {
@@ -106,21 +105,22 @@ export async function GET(_req: NextRequest) {
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }).then(async (groups) => {
-      return Promise.all(
-        groups.map(async (g) => {
-          const product = await prisma.product.findUnique({
-            where: { id: g.productId },
-            select: { name: true, category: true, unitType: true },
-          });
-          return {
-            productId: g.productId,
-            name: product?.name ?? "Unknown",
-            category: product?.category ?? "OTHER",
-            unitType: product?.unitType ?? "UNIT",
-            totalUsed: Number(g._sum.quantity ?? 0),
-          };
-        })
-      );
+      if (groups.length === 0) return [];
+      const products = await prisma.product.findMany({
+        where: { id: { in: groups.map((g) => g.productId) } },
+        select: { id: true, name: true, category: true, unitType: true },
+      });
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      return groups.map((g) => {
+        const p = productMap.get(g.productId);
+        return {
+          productId: g.productId,
+          name: p?.name ?? "Unknown",
+          category: p?.category ?? "OTHER",
+          unitType: p?.unitType ?? "UNIT",
+          totalUsed: Number(g._sum.quantity ?? 0),
+        };
+      });
     }),
   ]);
 
