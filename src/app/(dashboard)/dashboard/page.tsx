@@ -116,6 +116,26 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Onboarding hint — shown only when no products exist yet */}
+      {data.totalProducts === 0 && (
+        <div className="bg-violet-50 border border-violet-200 rounded-xl p-8 text-center">
+          <p className="text-2xl mb-3">📦</p>
+          <p className="text-base font-semibold text-violet-900 mb-1">No inventory added yet</p>
+          <p className="text-sm text-slate-600 mb-5">
+            Start by adding your products. Once they&apos;re in the system, staff can log usage from the Quick Log page.
+          </p>
+          <Link
+            href="/products/new"
+            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add First Product
+          </Link>
+        </div>
+      )}
+
       {/* Needs Attention */}
       {hasAlerts && (
         <div className="bg-white rounded-xl border border-slate-200">
