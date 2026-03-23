@@ -16,10 +16,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const { reversalReason } = await req.json();
 
-  const tx = await prisma.transaction.findUnique({
-    where: { id },
-    include: { product: { select: { id: true, currentQuantity: true } } },
-  });
+  let tx;
+  try {
+    tx = await prisma.transaction.findUnique({
+      where: { id },
+      include: { product: { select: { id: true, currentQuantity: true } } },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Database error";
+    return NextResponse.json({ error: `Database error: ${msg}` }, { status: 500 });
+  }
 
   if (!tx) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
   if (tx.isReversed) return NextResponse.json({ error: "Transaction already reversed" }, { status: 409 });
