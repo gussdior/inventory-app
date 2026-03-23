@@ -700,16 +700,21 @@ export default function LogPage() {
     session?.user.role === "MANAGER" ||
     session?.user.role === "ADMIN";
 
+  // Fetch products immediately — don't wait for session
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((prods) => { setProducts(Array.isArray(prods) ? prods : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // Fetch per-user data once session is available
   useEffect(() => {
     if (!session?.user?.id) return;
-    Promise.all([
-      fetch("/api/products").then((r) => r.json()),
-      fetch(`/api/transactions?performedById=${session.user.id}&limit=30`).then((r) => r.json()),
-    ]).then(([prods, txs]) => {
-      setProducts(Array.isArray(prods) ? prods : []);
-      setRecentTxs(Array.isArray(txs) ? txs : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetch(`/api/transactions?performedById=${session.user.id}&limit=30`)
+      .then((r) => r.json())
+      .then((txs) => setRecentTxs(Array.isArray(txs) ? txs : []))
+      .catch(() => {});
     if (isFrontDeskOrManager) {
       fetch("/api/users")
         .then((r) => r.json())

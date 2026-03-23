@@ -43,7 +43,7 @@ export default function TransactionsPage() {
     const params = new URLSearchParams();
     if (type !== "ALL") params.set("type", type);
     if (providerId !== "ALL") params.set("performedById", providerId);
-    params.set("limit", "200");
+    params.set("limit", "100");
     setLoading(true);
     fetch(`/api/transactions?${params}`)
       .then((r) => r.json())
