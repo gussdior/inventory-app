@@ -165,14 +165,14 @@ export default function ProductsPage() {
                     new Date(product.expirationDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
                   const isFav = favorites.has(product.id);
 
-                  const rowBorder = expired
-                    ? "border-l-2 border-red-400"
+                  const rowBg = expired
+                    ? "bg-red-50 hover:bg-red-100"
                     : low
-                    ? "border-l-2 border-amber-400"
-                    : "border-l-2 border-transparent";
+                    ? "bg-amber-50 hover:bg-amber-100"
+                    : "hover:bg-slate-50";
 
                   return (
-                    <tr key={product.id} className={`hover:bg-slate-50 transition-colors cursor-default ${rowBorder}`}>
+                    <tr key={product.id} className={`transition-colors cursor-default ${rowBg}`}>
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
