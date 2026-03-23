@@ -56,6 +56,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         brand: body.brand || null,
         sku: body.sku || null,
         unitType: body.unitType as UnitType,
+        currentQuantity: Number(body.currentQuantity),
         costPerUnit: Number(body.costPerUnit),
         sellingPrice: body.sellingPrice ? Number(body.sellingPrice) : null,
         reorderThreshold: Number(body.reorderThreshold ?? 5),
