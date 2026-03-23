@@ -49,22 +49,27 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     restoredQty = currentQty + Number(tx.quantity);
   }
 
-  // Atomic: mark as reversed + restore stock
-  await prisma.$transaction([
-    prisma.transaction.update({
-      where: { id },
-      data: {
-        isReversed: true,
-        reversalReason: reversalReason || null,
-        reversedById: session.user.id,
-        reversedAt: new Date(),
-      },
-    }),
-    prisma.product.update({
-      where: { id: tx.productId },
-      data: { currentQuantity: restoredQty },
-    }),
-  ]);
+  try {
+    // Atomic: mark as reversed + restore stock
+    await prisma.$transaction([
+      prisma.transaction.update({
+        where: { id },
+        data: {
+          isReversed: true,
+          reversalReason: reversalReason || null,
+          reversedById: session.user.id,
+          reversedAt: new Date(),
+        },
+      }),
+      prisma.product.update({
+        where: { id: tx.productId },
+        data: { currentQuantity: restoredQty },
+      }),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Database error";
+    return NextResponse.json({ error: `Failed to reverse transaction: ${msg}` }, { status: 500 });
+  }
 
   await writeAuditLog({
     entityType: "Transaction",

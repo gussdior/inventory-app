@@ -386,15 +386,10 @@ function ProductCard({
           )}
         </div>
 
-        {/* Tap CTA strip — shows default usage or generic prompt */}
+        {/* Tap CTA strip */}
         <div className="px-3 pb-2.5 pt-0">
-          <span className={cn(
-            "text-xs font-semibold transition-colors",
-            defaultQty !== null
-              ? "text-violet-600 group-hover/tap:text-violet-700"
-              : "text-slate-400 group-hover/tap:text-violet-500"
-          )}>
-            {defaultQty !== null ? `Tap = ${defaultQty} ${unitLabel}` : "Tap to log →"}
+          <span className="text-xs font-semibold text-slate-400 group-hover/tap:text-violet-500 transition-colors">
+            Tap to log →
           </span>
         </div>
       </button>
@@ -859,15 +854,10 @@ export default function LogPage() {
 
   const handleTap = useCallback(
     (product: Product) => {
-      const def = product.defaultUsageAmount;
-      if (def != null && def > 0) {
-        doLog(product, def, "", session?.user?.id ?? "");
-      } else {
-        setSelectedProduct(product);
-        setSheetOpen(true);
-      }
+      setSelectedProduct(product);
+      setSheetOpen(true);
     },
-    [doLog, session?.user?.id]
+    []
   );
 
   const handleOpenSheet = useCallback((product: Product) => {

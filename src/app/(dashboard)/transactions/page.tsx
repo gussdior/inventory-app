@@ -11,6 +11,7 @@ interface Transaction {
   id: string; transactionType: string; quantity: number;
   quantityBefore: number; quantityAfter: number; createdAt: string;
   clientName: string | null; reason: string | null; notes: string | null; wasteReason: string | null;
+  isReversed: boolean;
   product: { id: string; name: string; category: string; unitType: string };
   performedBy: { id: string; name: string; role: string };
   loggedBy: { id: string; name: string; role: string };
@@ -27,6 +28,27 @@ export default function TransactionsPage() {
   const [type, setType] = useState("ALL");
   const [providers, setProviders] = useState<User[]>([]);
   const [providerId, setProviderId] = useState("ALL");
+  const [voidConfirm, setVoidConfirm] = useState<string | null>(null);
+  const [voiding, setVoiding] = useState(new Set<string>());
+  const [voidError, setVoidError] = useState("");
+
+  async function handleVoid(txId: string) {
+    setVoiding((prev) => new Set([...prev, txId]));
+    setVoidError("");
+    const res = await fetch(`/api/transactions/${txId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reversalReason: "Voided from history" }),
+    });
+    setVoiding((prev) => { const n = new Set(prev); n.delete(txId); return n; });
+    if (res.ok) {
+      setTransactions((prev) => prev.map((t) => t.id === txId ? { ...t, isReversed: true } : t));
+    } else {
+      const d = await res.json().catch(() => ({}));
+      setVoidError(d.error ?? "Could not void — only admins can void any transaction; others can only void within 5 minutes.");
+      setVoidConfirm(null);
+    }
+  }
 
   const isManager = session?.user.role === "ADMIN" || session?.user.role === "MANAGER" || session?.user.role === "FRONT_DESK";
 
@@ -92,6 +114,13 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {voidError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+          <span>{voidError}</span>
+          <button onClick={() => setVoidError("")} className="ml-4 text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? (
@@ -116,11 +145,12 @@ export default function TransactionsPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Provider</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Client</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={tx.id} className={`hover:bg-slate-50 transition-colors${tx.isReversed ? " opacity-50" : ""}`}>
                     <td className="px-4 py-3 text-right text-xs text-slate-500 whitespace-nowrap">
                       {formatDate(tx.createdAt)}
                     </td>
@@ -152,6 +182,34 @@ export default function TransactionsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs max-w-xs truncate">
                       {tx.wasteReason ?? tx.reason ?? tx.notes ?? <span className="text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {tx.isReversed ? (
+                        <span className="text-xs text-slate-300 italic">Voided</span>
+                      ) : voidConfirm === tx.id ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleVoid(tx.id)}
+                            disabled={voiding.has(tx.id)}
+                            className="px-2.5 py-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white text-xs font-semibold rounded-lg min-h-[30px] transition-colors"
+                          >
+                            {voiding.has(tx.id) ? "..." : "Confirm"}
+                          </button>
+                          <button
+                            onClick={() => setVoidConfirm(null)}
+                            className="px-2.5 py-1 border border-slate-200 text-slate-600 text-xs font-medium rounded-lg min-h-[30px] hover:bg-slate-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setVoidConfirm(tx.id)}
+                          className="px-2.5 py-1 text-xs text-slate-300 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-lg transition-colors min-h-[30px]"
+                        >
+                          Void
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
