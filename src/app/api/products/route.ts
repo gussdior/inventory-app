@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     name, category, brand, sku, unitType,
     costPerUnit, sellingPrice, reorderThreshold,
     currentQuantity, expirationDate, notes,
+    quantityPerPackage, containedUnitType, defaultUsageAmount,
   } = body;
 
   if (!name || !category || !unitType || costPerUnit == null) {
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
       sellingPrice: sellingPrice ? Number(sellingPrice) : null,
       reorderThreshold: Number(reorderThreshold ?? 5),
       currentQuantity: Number(currentQuantity ?? 0),
+      quantityPerPackage: Math.max(1, parseInt(quantityPerPackage ?? "1") || 1),
+      containedUnitType: containedUnitType ? (containedUnitType as UnitType) : null,
+      defaultUsageAmount: defaultUsageAmount ? Number(defaultUsageAmount) : null,
       expirationDate: expirationDate ? new Date(expirationDate) : null,
       notes: notes || null,
     },

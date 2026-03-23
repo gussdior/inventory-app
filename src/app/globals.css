@@ -15,17 +15,30 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Hide scrollbar for quick-scroll rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Animations */
+@keyframes slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+@keyframes log-flash {
+  0%   { box-shadow: none; }
+  25%  { box-shadow: 0 0 0 3px #4ade80; }
+  100% { box-shadow: none; }
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+
+.animate-slide-up  { animation: slide-up  0.18s ease-out both; }
+.animate-sheet-up  { animation: sheet-up  0.25s cubic-bezier(0.32,0.72,0,1) both; }
+.animate-log-flash { animation: log-flash 0.9s ease-out both; }

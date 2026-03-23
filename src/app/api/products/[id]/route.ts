@@ -19,7 +19,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
       transactions: {
         orderBy: { createdAt: "desc" },
         take: 50,
-        include: { loggedBy: true, performedBy: true },
+        include: {
+          loggedBy: { select: { id: true, name: true } },
+          performedBy: { select: { id: true, name: true } },
+          reversedBy: { select: { name: true } },
+        },
       },
     },
   });
@@ -41,22 +45,34 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const before = await prisma.product.findUnique({ where: { id } });
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const updated = await prisma.product.update({
-    where: { id },
-    data: {
-      name: body.name,
-      category: body.category as ProductCategory,
-      brand: body.brand || null,
-      sku: body.sku || null,
-      unitType: body.unitType as UnitType,
-      costPerUnit: Number(body.costPerUnit),
-      sellingPrice: body.sellingPrice ? Number(body.sellingPrice) : null,
-      reorderThreshold: Number(body.reorderThreshold ?? 5),
-      expirationDate: body.expirationDate ? new Date(body.expirationDate) : null,
-      notes: body.notes || null,
-      isActive: body.isActive ?? true,
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.product.update({
+      where: { id },
+      data: {
+        name: body.name,
+        category: body.category as ProductCategory,
+        brand: body.brand || null,
+        sku: body.sku || null,
+        unitType: body.unitType as UnitType,
+        costPerUnit: Number(body.costPerUnit),
+        sellingPrice: body.sellingPrice ? Number(body.sellingPrice) : null,
+        reorderThreshold: Number(body.reorderThreshold ?? 5),
+        defaultUsageAmount: body.defaultUsageAmount ? Number(body.defaultUsageAmount) : null,
+        quantityPerPackage: body.quantityPerPackage ? Math.max(1, parseInt(body.quantityPerPackage) || 1) : 1,
+        containedUnitType: body.containedUnitType ? (body.containedUnitType as UnitType) : null,
+        expirationDate: body.expirationDate ? new Date(body.expirationDate) : null,
+        notes: body.notes || null,
+        isActive: body.isActive ?? true,
+      },
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Database error";
+    if (msg.includes("Unique constraint") || msg.includes("unique constraint")) {
+      return NextResponse.json({ error: "SKU already in use by another product." }, { status: 409 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   await writeAuditLog({
     entityType: "Product",
@@ -65,6 +81,22 @@ export async function PUT(req: NextRequest, { params }: Params) {
     changesBefore: before as unknown as object,
     changesAfter: updated as unknown as object,
     performedById: session.user.id,
+  });
+
+  return NextResponse.json(updated);
+}
+
+// PATCH /api/products/:id — lightweight update (defaultUsageAmount, any authenticated user)
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const { defaultUsageAmount } = await req.json();
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: { defaultUsageAmount: defaultUsageAmount != null ? Number(defaultUsageAmount) : null },
   });
 
   return NextResponse.json(updated);

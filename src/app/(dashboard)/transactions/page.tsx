@@ -106,7 +106,7 @@ export default function TransactionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</th>
@@ -119,7 +119,7 @@ export default function TransactionsPage() {
               <tbody className="divide-y divide-slate-100">
                 {transactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-right text-xs text-slate-500 whitespace-nowrap">
                       {formatDate(tx.createdAt)}
                     </td>
                     <td className="px-4 py-3">
@@ -133,7 +133,7 @@ export default function TransactionsPage() {
                         {CATEGORY_LABELS[tx.product.category as keyof typeof CATEGORY_LABELS]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-900">
+                    <td className="px-4 py-3 text-right font-medium text-slate-900 whitespace-nowrap">
                       {tx.quantity} <span className="text-slate-400 font-normal text-xs">{UNIT_LABELS[tx.product.unitType as keyof typeof UNIT_LABELS]}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-slate-600">
@@ -145,7 +145,9 @@ export default function TransactionsPage() {
                         <p className="text-xs text-slate-400">Logged by {tx.loggedBy.name}</p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{tx.clientName ?? <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {tx.clientName ?? <span className="text-slate-300">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-slate-500 text-xs max-w-xs truncate">
                       {tx.wasteReason ?? tx.reason ?? tx.notes ?? <span className="text-slate-300">—</span>}
                     </td>

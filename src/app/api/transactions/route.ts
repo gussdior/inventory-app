@@ -144,12 +144,25 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
+  // Fetch the esthetician's name for the audit "Requested By" column
+  let requestedByName: string | null = null;
+  if (resolvedPerformedById !== session.user.id) {
+    const performer = await prisma.user.findUnique({
+      where: { id: resolvedPerformedById },
+      select: { name: true },
+    });
+    requestedByName = performer?.name ?? null;
+  }
+
   await writeAuditLog({
     entityType: "Transaction",
     entityId: transaction.id,
     action: transactionType,
     changesBefore: { quantity: currentQty } as object,
-    changesAfter: { quantity: newQty } as object,
+    changesAfter: {
+      quantity: newQty,
+      ...(requestedByName ? { requestedBy: requestedByName } : {}),
+    } as object,
     performedById: session.user.id,
     ipAddress: req.headers.get("x-forwarded-for") ?? null,
   });

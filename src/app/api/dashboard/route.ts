@@ -44,18 +44,22 @@ export async function GET(_req: NextRequest) {
       take: 15,
       orderBy: { createdAt: "desc" },
       include: {
-        product: { select: { name: true, category: true } },
+        product: { select: { name: true, category: true, unitType: true } },
         performedBy: { select: { name: true } },
         loggedBy: { select: { name: true } },
       },
     }),
 
-    // Total inventory value
+    // Total inventory value: sum(currentQuantity * costPerUnit) for all active products
     prisma.product.findMany({
       where: { isActive: true },
       select: { costPerUnit: true, currentQuantity: true },
     }).then((products) =>
-      products.reduce((sum, p) => sum + Number(p.costPerUnit) * Number(p.currentQuantity), 0)
+      products.reduce((sum, p) => {
+        const cost = parseFloat(String(p.costPerUnit ?? 0)) || 0;
+        const qty = parseFloat(String(p.currentQuantity ?? 0)) || 0;
+        return sum + cost * qty;
+      }, 0)
     ),
 
     // Usage by provider (last 30 days)

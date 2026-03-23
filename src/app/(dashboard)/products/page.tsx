@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CATEGORY_LABELS, CATEGORY_COLORS, UNIT_LABELS, formatCurrency, isLowStock } from "@/lib/utils";
-import { ProductCategory } from "@prisma/client";
+import { useFavorites } from "@/hooks/useFavorites";
+import type { ProductCategory } from "@prisma/client";
 
 interface Product {
   id: string;
@@ -25,11 +27,13 @@ const CATEGORIES = ["ALL", ...Object.keys(CATEGORY_LABELS)] as const;
 
 export default function ProductsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ALL");
   const [showLowStock, setShowLowStock] = useState(false);
+  const { favorites, toggleFavorite } = useFavorites();
 
   const isManager = session?.user.role === "ADMIN" || session?.user.role === "MANAGER";
 
@@ -139,6 +143,7 @@ export default function ProductsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="w-8 px-4 py-3" />
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">In Stock</th>
@@ -157,12 +162,35 @@ export default function ProductsPage() {
                     product.expirationDate &&
                     !expired &&
                     new Date(product.expirationDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                  const isFav = favorites.has(product.id);
+
+                  const rowBorder = expired
+                    ? "border-l-2 border-red-400"
+                    : low
+                    ? "border-l-2 border-amber-400"
+                    : "border-l-2 border-transparent";
+
                   return (
-                    <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={product.id} className={`hover:bg-slate-50 transition-colors cursor-default ${rowBorder}`}>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          className="text-base leading-none transition-colors"
+                          aria-label={isFav ? "Remove favorite" : "Add favorite"}
+                          title={isFav ? "Remove favorite" : "Add to Quick Log favorites"}
+                        >
+                          <span className={isFav ? "text-amber-400" : "text-slate-200 hover:text-amber-300"}>★</span>
+                        </button>
+                      </td>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-900">{product.name}</p>
-                        {product.brand && <p className="text-xs text-slate-500">{product.brand}</p>}
-                        {product.sku && <p className="text-xs text-slate-400 font-mono">{product.sku}</p>}
+                        <button
+                          onClick={() => router.push(`/products/${product.id}/edit`)}
+                          className="text-left group"
+                        >
+                          <p className="font-medium text-slate-900 group-hover:underline cursor-pointer">{product.name}</p>
+                          {product.brand && <p className="text-xs text-slate-500">{product.brand}</p>}
+                          {product.sku && <p className="text-xs text-slate-400 font-mono">{product.sku}</p>}
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLORS[product.category]}`}>
@@ -195,7 +223,9 @@ export default function ProductsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {low ? (
+                        {expired ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Expired</span>
+                        ) : low ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Low Stock</span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">OK</span>
@@ -205,21 +235,23 @@ export default function ProductsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/log?productId=${product.id}`}
-                            className="text-xs text-violet-600 hover:text-violet-700 font-medium"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 h-9 px-3 rounded-lg text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
                             Log
-                          </Link>
-                          <Link
-                            href={`/products/${product.id}`}
-                            className="text-xs text-slate-500 hover:text-slate-700 font-medium"
-                          >
-                            View
                           </Link>
                           {isManager && (
                             <Link
                               href={`/products/${product.id}/edit`}
-                              className="text-xs text-slate-500 hover:text-slate-700 font-medium"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 h-9 px-3 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
                             >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
                               Edit
                             </Link>
                           )}

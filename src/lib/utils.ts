@@ -1,4 +1,28 @@
-import { ProductCategory, UnitType, TransactionType } from "@prisma/client";
+import type { ProductCategory, UnitType, TransactionType } from "@prisma/client";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatRelativeTime(date: string | Date): string {
+  const now = new Date();
+  const d = new Date(date);
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.floor(diffHr / 24)}d ago`;
+}
+
+export function getQuickAmounts(category: string): number[] {
+  if (category === "BOTOX" || category === "FILLER") return [10, 20, 30];
+  if (category === "RETAIL" || category === "SKINCARE") return [1, 2, 3];
+  return [1, 5, 10];
+}
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   BOTOX: "Botox",

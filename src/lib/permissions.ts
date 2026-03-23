@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 
 export function canManageProducts(role: UserRole) {
   return role === "ADMIN" || role === "MANAGER";
