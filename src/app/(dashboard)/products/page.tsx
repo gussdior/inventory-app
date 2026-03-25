@@ -33,7 +33,9 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ALL");
   const [showLowStock, setShowLowStock] = useState(false);
+  const [page, setPage] = useState(1);
   const { favorites, toggleFavorite } = useFavorites();
+  const PAGE_SIZE = 50;
 
   const isManager = session?.user.role === "ADMIN" || session?.user.role === "MANAGER";
 
@@ -49,10 +51,10 @@ export default function ProductsPage() {
       .catch(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [category, showLowStock]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); setPage(1); }, [category, showLowStock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSearchKey(e: React.KeyboardEvent) {
-    if (e.key === "Enter") load();
+    if (e.key === "Enter") { load(); setPage(1); }
   }
 
   const filtered = search
@@ -63,6 +65,9 @@ export default function ProductsPage() {
           (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
       )
     : products;
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -155,7 +160,7 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map((product) => {
+                {paginated.map((product) => {
                   const low = isLowStock(Number(product.currentQuantity), Number(product.reorderThreshold));
                   const expired =
                     product.expirationDate && new Date(product.expirationDate) < new Date();
@@ -263,6 +268,30 @@ export default function ProductsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
+            <p className="text-xs text-slate-500">
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} products
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="text-xs text-slate-600 font-medium">Page {page} of {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         )}
       </div>
