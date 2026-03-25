@@ -30,6 +30,7 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   SKINCARE: "Skincare",
   RETAIL: "Retail",
   SUPPLIES: "Supplies",
+  INJECTION: "Injection",
   OTHER: "Other",
 };
 
@@ -67,6 +68,7 @@ export const CATEGORY_COLORS: Record<ProductCategory, string> = {
   SKINCARE: "bg-teal-100 text-teal-700",
   RETAIL: "bg-amber-100 text-amber-700",
   SUPPLIES: "bg-slate-100 text-slate-700",
+  INJECTION: "bg-blue-100 text-blue-700",
   OTHER: "bg-gray-100 text-gray-700",
 };
 

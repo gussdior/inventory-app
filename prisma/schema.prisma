@@ -20,6 +20,7 @@ enum ProductCategory {
   SKINCARE
   RETAIL
   SUPPLIES
+  INJECTION
   OTHER
 }
 
